@@ -1,6 +1,4 @@
 import sys
-
-sys.path.append("site-packages")
 import requests
 import cfscrape
 import json
@@ -16,6 +14,7 @@ import uuid
 import random
 import requests
 
+sys.path.append("site-packages")
 TRANS_TABLE = {ord(c): None for c in string.punctuation}
 
 
@@ -25,13 +24,12 @@ class Source:
     # create meta class for abstract classes that we dont need to use immediately
     __metaclass__ = ABCMeta
 
-    def __init__(self, titleList, seasons, region, proxy):
+    def __init__(self, titleList, seasons, region):
         self.serviceName = ""
         self.shows = []
         self.titleList = titleList
         self.seasons = seasons
         self.region = region
-        self.proxy = proxy
 
     # if list of shows needs to be updated (optional)
     @abstractmethod
@@ -80,12 +78,13 @@ class Source:
                 show_obj = {'name': name, 'sites': {self.serviceName: url}}
                 animeList[translated_name] = show_obj
 
+
 # make a class for a specific streaming service (crunchyroll)
 class CrunchyRoll(Source):
 
     # define streaming service as "CrunchyRoll"
-    def __init__(self, titleList, seasons, region = 'us', proxy = {}):
-        Source.__init__(self, titleList, seasons, region, proxy)
+    def __init__(self, titleList, seasons, region = 'us'):
+        Source.__init__(self, titleList, seasons, region)
         self.serviceName = "crunchyroll"
 
     # add shows to the list
@@ -93,7 +92,7 @@ class CrunchyRoll(Source):
         self.shows = self.getData()
         # if program cant find show
         if not self.shows:
-            sys.exit('No shows were found for ' + self.name)
+            sys.exit('No shows were found for ' + self.serviceName)
         # Go through the shows in service and add them to the list of anime
         for show in self.shows:
             animeName = unidecode(show[0].strip())
@@ -117,12 +116,10 @@ class CrunchyRoll(Source):
         }
 
         # login to streaming service so we can start searching for anime
-        crunchyRollScrape.get('https://www.crunchyroll.com/login', parameters = parameters, proxies = self.proxy)
-        crunchyRollScrape.post('https://www.crunchyroll.com/?formhandler', parameters = parameters, proxies = self.proxy)
+        crunchyRollScrape.get('https://www.crunchyroll.com/login', parameters = parameters)
+        crunchyRollScrape.post('https://www.crunchyroll.com/?formhandler', parameters = parameters)
         # WILL NEED TO CHANGE THIS IN THE FUTURE
-        blob = crunchyRollScrape.get('http://www.crunchyroll.com/videos/anime/alpha?group=all', proxies = self.proxy)
+        blob = crunchyRollScrape.get('http://www.crunchyroll.com/videos/anime/alpha?group=all')
         # regex to find shows
         regex = '<a title=\"([^\"]*)\" token=\"shows-portraits\" itemprop=\"url\" href=\"([^\"]*)\"'
         return re.findall(regex, blob.text)
-
-
